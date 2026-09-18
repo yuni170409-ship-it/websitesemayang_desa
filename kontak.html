@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kirim Aduan — Desa Sepadu</title>
+     <link rel="icon" type="image/png" href="favicon.png">
+    <style>
+        * {margin: 0;padding: 0;box-sizing: border-box;font-family: 'Segoe UI', sans-serif;}
+        body {min-height: 100vh;background: linear-gradient(135deg, #eaf9ee, #d4efdc, #b8e0c4);padding: 20px;}
+        .container {max-width: 500px;margin: 0 auto;}
+        .back-btn {display: inline-block;color: #2d5a3d;text-decoration: none;margin-bottom: 20px;font-weight: 600;}
+        .card {background: white;padding: 30px;border-radius: 16px;box-shadow: 0 4px 20px rgba(0,0,0,0.1);margin-bottom: 20px;}
+        h2 {text-align: center;color: #2d5a3d;margin-bottom: 25px;}
+        label {display: block;margin-bottom: 8px;font-weight: 600;color: #1a3d24;}
+        input, textarea {width: 100%;padding: 12px;margin-bottom: 20px;border: 2px solid #b8d4bc;border-radius: 8px;font-size: 15px;}
+        button {width: 100%;padding: 14px;background: linear-gradient(135deg, #4CAF50, #45a049);color: white;border: none;border-radius: 8px;font-size: 16px;font-weight: 600;cursor: pointer;transition: transform 0.2s;}
+        button:hover {transform: scale(1.02);}
+        .alert {margin-top: 20px;padding: 15px;border-radius: 8px;display: none;}
+        .alert.success {background: #d4edda;color: #155724;border: 1px solid #c3e6cb;}
+        .alert.token-box {background: #fff3cd;color: #856404;border: 2px dashed #ffc107;font-weight: bold;text-align: center;font-size: 18px;}
+        .alert.error {background: #f8d7da;color: #721c24;border: 1px solid #f5c6cb;}
+        .token-highlight {font-size: 22px;font-weight: bold;color: #d63384;margin: 10px 0;letter-spacing: 3px;}
+        .divider {text-align: center;margin: 30px 0;color: #888;}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="index.html" class="back-btn">← Kembali ke Beranda</a>
+
+        <!-- === FORM KIRIM ADUAN === -->
+        <div class="card">
+            <h2>📝 Kirim Aduan / Masukan</h2>
+            <form id="formAduan">
+                <label>Nama Lengkap *</label>
+                <input type="text" id="nama" required placeholder="Masukkan nama Anda">
+
+                <label>Email *</label>
+                <input type="email" id="email" required placeholder="email@contoh.com">
+
+                <label>Nomor HP</label>
+                <input type="tel" id="hp" placeholder="08xx-xxxx-xxxx">
+
+                <label>Isi Aduan / Masukan *</label>
+                <textarea id="pesan" rows="5" required placeholder="Tuliskan aduan atau masukan Anda..."></textarea>
+
+                <button type="submit">📤 Kirim Aduan</button>
+            </form>
+
+            <div id="pesanAlert" class="alert"></div>
+        </div>
+
+        <div class="divider">━━━━━━ ATAU ━━━━━━</div>
+
+        <!-- === CEK STATUS ADUAN DENGAN TOKEN === -->
+        <div class="card">
+            <h2>🔍 Cek Status Aduan</h2>
+            <form id="formCek">
+                <label>Masukkan Token Anda *</label>
+                <input type="text" id="tokenCek" required placeholder="Contoh: ADU-123456" style="text-transform: uppercase;">
+                <button type="submit" style="background: linear-gradient(135deg, #007bff, #0056b3);">🔍 Cek Status</button>
+            </form>
+
+            <div id="hasilCek" class="alert" style="display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ GANTI LINK INI DENGAN LINK API KAMU (SAMA DENGAN YANG DI ADMIN!)
+        const API_URL = "https://script.google.com/macros/s/AKfycbxDtxL2kZtrPfxJHu7GNVrsGwVmuJgSpFc_tQIGBM0ffaax3AKBwQ3UWeNdGQ0wD89T1A/exec";
+
+        // === FUNGSI BUAT TOKEN OTOMATIS ===
+        function buatToken() {
+            const angka = Math.floor(Math.random() * 900000) + 100000;
+            return `ADU-${angka}`;
+        }
+
+        // === KIRIM ADUAN ===
+        const formAduan = document.getElementById('formAduan');
+        const alertBox = document.getElementById('pesanAlert');
+
+        formAduan.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            alertBox.style.display = "none";
+            
+            const token = buatToken();
+            
+            const formData = new URLSearchParams();
+            formData.append('action', 'kirim');
+            formData.append('token', token);
+            formData.append('nama', document.getElementById('nama').value);
+            formData.append('email', document.getElementById('email').value);
+            formData.append('hp', document.getElementById('hp').value);
+            formData.append('pesan', document.getElementById('pesan').value);
+
+            try {
+                const res = await fetch(API_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                alertBox.className = "alert token-box";
+                alertBox.innerHTML = `
+                    ✅ Aduan Berhasil Dikirim!<br>
+                    Simpan Token ini untuk mengecek status:<br>
+                    <div class="token-highlight">${token}</div>
+                    Token berlaku selamanya. Gunakan di halaman "Cek Status Aduan".
+                `;
+                alertBox.style.display = "block";
+                formAduan.reset();
+                
+            } catch (error) {
+                alertBox.className = "alert error";
+                alertBox.innerHTML = "❌ Gagal mengirim. Silakan coba lagi.";
+                alertBox.style.display = "block";
+                console.error(error);
+            }
+        });
+
+        // === CEK STATUS DENGAN TOKEN ===
+        const formCek = document.getElementById('formCek');
+        const hasilCek = document.getElementById('hasilCek');
+
+        formCek.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            hasilCek.style.display = "none";
+            const tokenInput = document.getElementById('tokenCek').value.trim().toUpperCase();
+
+            try {
+                const res = await fetch(API_URL + "?token=" + tokenInput);
+                const hasil = await res.json();
+                
+                if (hasil.data && hasil.data.length > 0) {
+                    const aduan = hasil.data[0];
+                    const warna = aduan.status === "Belum Direspon" 
+                        ? "background: #fff3cd; color: #856404; border: 1px solid #ffeeba;"
+                        : "background: #d4edda; color: #155724; border: 1px solid #c3e6cb;";
+                    
+                    hasilCek.style.cssText = warna;
+                    hasilCek.innerHTML = `
+                        <strong>✅ Ditemukan!</strong><br><br>
+                        📋 Token: ${aduan.token}<br>
+                        👤 Nama: ${aduan.nama}<br>
+                        📝 Aduan: ${aduan.pesan}<br>
+                        📅 Tanggal: ${aduan.tanggal}<br>
+                        📊 Status: <strong>${aduan.status}</strong><br>
+                        ${aduan.respon_admin ? `💬 Respon Admin: ${aduan.respon_admin}` : ''}
+                    `;
+                    hasilCek.style.display = "block";
+                } else {
+                    hasilCek.className = "alert error";
+                    hasilCek.innerHTML = "❌ Token tidak ditemukan. Periksa kembali token Anda.";
+                    hasilCek.style.display = "block";
+                }
+            } catch (error) {
+                hasilCek.className = "alert error";
+                hasilCek.innerHTML = "❌ Gagal mengecek. Coba lagi nanti.";
+                hasilCek.style.display = "block";
+                console.error(error);
+            }
+        });
+    </script>
+</body>
+</html>
